@@ -1,0 +1,121 @@
+<div class="container">
+  <header>
+    <div class="logo-area">
+      <svg class="logo-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+      </svg>
+      <h1>Weather Forecast Dashboard</h1>
+    </div>
+    <p>Real-time weather telemetry from Azure App Service</p>
+    <div class="api-source">
+      <span class="status-dot" [ngClass]="connectionClass"></span>
+      <span>{{ connectionText }}</span>
+    </div>
+  </header>
+
+  <div class="controls-panel">
+    <button (click)="loadData()" [class.loading]="isLoading" class="refresh-btn">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M21 4v5h-5"></path>
+      </svg>
+      Refresh Data
+    </button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon high">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Max Temperature</span>
+        <span class="stat-value">{{ maxTemp }}</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon low">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"></path>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Min Temperature</span>
+        <span class="stat-value">{{ minTemp }}</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon avg">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+        </svg>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Average Temp</span>
+        <span class="stat-value">{{ avgTemp }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="shimmer-wrapper" [class.active]="isLoading">
+      <div class="spinner"></div>
+      <div class="loading-text">Fetching latest meteorology logs...</div>
+    </div>
+
+    <div class="table-responsive" *ngIf="!isError">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Temp (°C)</th>
+            <th>Temp (°F)</th>
+            <th>Summary</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let forecast of forecastData">
+            <td>
+              <span class="date-text">{{ formatDate(forecast.date) }}</span>
+            </td>
+            <td>
+              <span class="temp-badge" [ngClass]="getTempClass(forecast.temperatureC)">
+                {{ forecast.temperatureC }}°C
+              </span>
+            </td>
+            <td>
+              <span class="temp-badge" [ngClass]="getTempClass(forecast.temperatureC)">
+                {{ forecast.temperatureF }}°F
+              </span>
+            </td>
+            <td>
+              <span class="summary-tag" [ngClass]="forecast.summary ? forecast.summary.toLowerCase() : 'mild'">
+                {{ getSummaryIcon(forecast.summary) }} {{ forecast.summary || 'N/A' }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="error-container" [class.active]="isError">
+      <div class="error-icon">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+      </div>
+      <h3 class="error-title">Failed to load API Data</h3>
+      <p class="error-msg">{{ errorMessage }}</p>
+      <button (click)="loadData()" class="retry-btn">Retry Connection</button>
+    </div>
+  </div>
+
+  <footer>
+    <p>Azure Static Web App deployed with GitHub Actions</p>
+    <p style="margin-top: 0.5rem; font-size: 0.8rem; opacity: 0.7;">
+      Backend Endpoint: 
+      <a id="backend-link" [href]="apiUrl" target="_blank">{{ apiUrl }}</a>
+    </p>
+  </footer>
+</div>
