@@ -1,57 +1,88 @@
+# Workflow name displayed in the GitHub Actions tab
 name: Deploy Angular to GitHub Pages
 
+# Trigger the workflow whenever code is pushed to the main branch
 on:
   push:
     branches:
       - main
 
+# Permissions required by the workflow
 permissions:
+  # Read repository contents for checkout
   contents: read
+  # Permission to publish the site to GitHub Pages
   pages: write
+  # Required for secure authentication with GitHub Pages deployment
   id-token: write
 
+# Prevent multiple deployments from running simultaneously
 concurrency:
+  # Group all GitHub Pages deployments together
   group: github-pages
+  # Cancel any previous deployment still in progress when a new push occurs
   cancel-in-progress: true
 
+# Define the sequence of jobs that make up the workflow
 jobs:
+  #---------------------------
+  # Continous Integration (CI)
+  #---------------------------
   build:
+    # Use GitHub-hosted Ubuntu runner (VM)
     runs-on: ubuntu-latest
 
     steps:
+    # Clone the repository into the runner
       - name: Checkout repository
         uses: actions/checkout@v4
 
+    # Install the required Node.js version
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
+          # Node.js runtime version
           node-version: 22
           # Caches node dependencies and only runs npm ci when lock file changes.
+          # This speeds up future builds
           cache: npm
+          # Use package-lock.json to determine cache validity
           cache-dependency-path: package-lock.json
 
+      # Install project dependencies exactly as defined in package-lock.json
       - name: Install dependencies
         run: npm ci
 
+      # Build the Angular application in production mode
       - name: Build Angular application
         run: |
           npm run build -- --configuration production --base-href "/${{ github.event.repository.name }}/"
 
+      # Upload the generated static files as a deployment artifact
+      # The artifact will be used by the deployment job
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist/weather-app/browser
 
+  #---------------------------
+  # Continous Deployment (CD)
+  #---------------------------
   deploy:
+    # Execute only after the build job completes successfully
     needs: build
-
+    # Use GitHub-hosted Ubuntu runner (VM)
     runs-on: ubuntu-latest
 
+    # Configure the GitHub Pages deployment environment
     environment:
+      # Environment name displayed in GitHub
       name: github-pages
+      # Automatically expose the deployed website URL
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
+    # Publish the uploaded artifact to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
