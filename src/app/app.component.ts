@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { WeatherService } from './services/weather.service';
 import { WeatherForecast } from './models/weather-forecast.model';
 import { environment } from '../../environments/environment';
+import { Observable, of } from 'rxjs';
+import { tap, catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
@@ -13,16 +15,14 @@ import { environment } from '../../environments/environment';
 })
 export class AppComponent implements OnInit {
   apiUrl = environment.apiUrl;
-  forecastData: WeatherForecast[] = [];
+  forecasts$: Observable<WeatherForecast[]> | null = null;
 
-  // Status states
   isLoading = false;
   isError = false;
   errorMessage = '';
   connectionClass = '';
   connectionText = 'Connecting...';
 
-  // Stats telemetry
   maxTemp = '--';
   minTemp = '--';
   avgTemp = '--';
@@ -39,24 +39,23 @@ export class AppComponent implements OnInit {
     this.connectionClass = 'loading';
     this.connectionText = 'Fetching live data...';
 
-    this.weatherService.getForecast().subscribe({
-      next: (data) => {
-        this.forecastData = data;
+    this.forecasts$ = this.weatherService.getForecast().pipe(
+      tap((data) => {
         this.calculateStats(data);
         this.connectionClass = 'online';
         this.connectionText = 'Connected (Live API)';
         this.isLoading = false;
-      },
-      error: (err) => {
+      }),
+      catchError((err) => {
         console.error('API Fetch Failed:', err);
         this.isError = true;
-        this.forecastData = [];
         this.connectionClass = '';
         this.connectionText = 'Disconnected / Offline';
         this.errorMessage = `Could not load weather logs from the Azure Web App backend. Error: ${err.message || err.statusText || 'Unknown Connection Error'}`;
         this.isLoading = false;
-      }
-    });
+        return of([]);
+      })
+    );
   }
 
   calculateStats(data: WeatherForecast[]): void {
